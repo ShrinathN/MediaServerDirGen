@@ -1,5 +1,8 @@
 #!/bin/python
 
+import os
+import re
+
 #this function will create the config file when it is run
 def create_config_file():
 	fil = open('msdr.conf', 'w')
@@ -29,25 +32,39 @@ def create_config_file():
 # For example, to add a video directory, including subdirectories, add the following
 # VID,/path/to/video/directory
 # For example, to add a photo directory, including subdirectories, add the following
-# PHO,/path/to/video/directory
+# PHO,/path/to/photo/directory
+# Fir example, to add your TV show directory, which follows the structure, add the following
+# TVS,/path/to/tv/show/library
 ###
 '''
 	fil.write(text_to_write)
 	fil.close()
 
-#this function returns a list of all the directories in the config file
+#checks if a string is an image file or not, just checks the extension
+def check_if_image_file(string_to_check):
+	if(string_to_check[-4:] == '.png' or string_to_check[-4:] == '.bmp' or string_to_check[-4:] == '.gif' or string_to_check[-4:] == '.jpg' or string_to_check[-5:] == '.jpeg'):
+		return True
+	else:
+		return False
 
+#this function returns a list of all the image files in the list of directories supplied to it
 def get_photo_list(photo_directories):
-	try:
-		subdirs = os.listdir(photo_directories)
-		for i in subdirs:
-			os.chdir(i)
-			output = get_photo_list(i)
-			os.chdir('..')
-		return output
-	except NotADirectoryError:
-		if(i[-4:] == '.jpg' or i[-5:] == '.jpeg' or i[-4:] == '.gif' or i[-4:] == '.png' or i[-4:] == '.bmp'):
-			return 
+	list_to_scan = photo_directories.copy()
+	output_list = []
+	for i in list_to_scan:
+		subdirs = os.listdir(i)
+		for x in subdirs:
+			try:
+				if(os.listdir(str(i) + '/' + str(x)) != []):
+					list_to_scan.append(str(i) + '/' + str(x))
+			except NotADirectoryError:
+				if(check_if_image_file(str(i) + '/' + str(x))):
+					output_list.append(str(i) + '/' + str(x))
+	cleaned_list = []
+	for d in output_list:
+		cleaned_list.append(re.sub('//', '/', d))
+	return cleaned_list
+			
 
 def get_dir_list_from_config():
 	music_dir = [] #MUS
