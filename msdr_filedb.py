@@ -33,23 +33,73 @@ def create_config_file():
 # VID,/path/to/video/directory
 # For example, to add a photo directory, including subdirectories, add the following
 # PHO,/path/to/photo/directory
-# Fir example, to add your TV show directory, which follows the structure, add the following
+# For example, to add your TV show directory, which follows the structure, add the following
 # TVS,/path/to/tv/show/library
+#
+# Various flags can be added to each directory listing
+# R - for recursive
+# For example, a master photo directory can be declared by
+# PHO,/path/to/photos/,R
 ###
 '''
 	fil.write(text_to_write)
 	fil.close()
 
+
+#checks if a string is a video file or not, just checks the extension
+def check_if_video_file(string_to_check):
+	if(string_to_check[-4:] == '.mp4' or string_to_check[-4:] == '.mkv' or string_to_check[-4:] == '.wav' or string_to_check[-4:] == '.m4a' or string_to_check[-4:] == '.avi' or string_to_check[-5:] == '.webm'):
+		return True
+	else:
+		return False
+
+#this function takes in a single video directory as a string and returns the list of video files in it
+def get_video_list(video_directory):
+	list_of_video_files = []
+	subdir_listing = os.listdir(video_directory)
+	for current_subdir in subdir_listing:
+		try:
+			os.listdir(video_directory + '/' + current_subdir)
+			continue
+		except NotADirectoryError:
+			if(check_if_video_file(video_directory + current_subdir)):
+				list_of_video_files.append(video_directory + current_subdir)
+	return list_of_video_files
+
+#this function returns a list of all the video files in the list of directories supplied to it
+def get_video_list_r(video_directories):
+	if(type(video_directories) == type(str())):
+		list_to_scan = [video_directories]
+	elif(type(video_directories) == type(list())):
+		list_to_scan = video_directories.copy()
+	output_list = []
+	for i in list_to_scan:
+		subdirs = os.listdir(i)
+		for x in subdirs:
+			try:
+				if(os.listdir(str(i) + '/' + str(x)) != []):
+					list_to_scan.append(str(i) + '/' + str(x))
+			except NotADirectoryError:
+				if(check_if_video_file(str(i) + '/' + str(x))):
+					output_list.append(str(i) + '/' + str(x))
+	cleaned_list = []
+	for d in output_list:
+		cleaned_list.append(re.sub('//', '/', d))
+	return cleaned_list
+
 #checks if a string is an image file or not, just checks the extension
 def check_if_image_file(string_to_check):
-	if(string_to_check[-4:] == '.png' or string_to_check[-4:] == '.bmp' or string_to_check[-4:] == '.gif' or string_to_check[-4:] == '.jpg' or string_to_check[-5:] == '.jpeg'):
+	if(string_to_check[-4:] == '.png' or string_to_check[-4:] == '.bmp' or string_to_check[-4:] == '.gif' or string_to_check[-4:] == '.jpg' or string_to_check[-5:] == '.jpeg' or string_to_check[-4:] == '.PNG' or string_to_check[-4:] == '.BMP' or string_to_check[-4:] == '.GIF' or string_to_check[-4:] == '.JPG' or string_to_check[-5:] == '.JPEG'):
 		return True
 	else:
 		return False
 
 #this function returns a list of all the image files in the list of directories supplied to it
-def get_photo_list(photo_directories):
-	list_to_scan = photo_directories.copy()
+def get_photo_list_r(photo_directories):
+	if(type(photo_directories) == type(str())):
+		list_to_scan = [photo_directories]
+	elif(type(photo_directories) == type(list())):
+		list_to_scan = photo_directories.copy()
 	output_list = []
 	for i in list_to_scan:
 		subdirs = os.listdir(i)
@@ -64,29 +114,20 @@ def get_photo_list(photo_directories):
 	for d in output_list:
 		cleaned_list.append(re.sub('//', '/', d))
 	return cleaned_list
-			
+
 
 def get_dir_list_from_config():
-	music_dir = [] #MUS
-	video_dir = [] #VID
-	movie_dir = [] #MOV
-	tvsho_dir = [] #TVS
-	photo_dir = [] #PHO
+	job_list = []
 	filename = open('msdr.conf', 'r') #opening file
 	read_string = filename.readline() #reading the first line
 	while(read_string != ''): #looping all lines
 		if(read_string[0] != '#'): #not a comment
-			if(read_string[0:3] == 'MUS'): #music directory
-				music_dir.append(read_string[4:])
-			elif(read_string[0:3] == 'VID'): #video directory
-				video_dir.append(read_string[4:])
-			elif(read_string[0:3] == 'MOV'): #movie directory
-				movie_dir.append(read_string[4:])
-			elif(read_string[0:3] == 'TVS'): #tv show directory
-				tvsho_dir.append(read_string[4:])
-			elif(read_string[0:3] == 'PHO'): #photos directory
-				photo_dir.append(read_string[4:])
+			chopped_line = read_string.split(',')
+			job_list.append({
+				'type' : chopped_line[0],
+				'dir' : chopped_line[1],
+				'recursive' : True if(chopped_line[2] == 'R') else False
+			})
 		read_string = filename.readline() #read new line
 	filename.close() #finally close the file
-	#return all the different directory lists
-	return (music_dir, video_dir, movie_dir, tvsho_dir, photo_dir)
+	return job_list
